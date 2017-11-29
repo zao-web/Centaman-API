@@ -2,7 +2,7 @@
 namespace Zao\ZCSDK\Services;
 
 abstract class API_Request {
-	protected $endpoint = 'https://tickets.niagaracruises.com/CENTAMAN.API_Staging/'; // To be set via environment variable, at some point
+	protected $endpoint;
 	protected $args;
 	protected $username;
 	protected $password;
@@ -11,8 +11,9 @@ abstract class API_Request {
 	protected $code;
 
 	public function __construct() {
-		$this->username = CENTAMAN_USER;
+		$this->username = CENTAMAN_USERNAME;
 		$this->password = CENTAMAN_PASS;
+		$this->endpoint = CENTAMAN_API_URL;
 		$this->args     = array();
 		$this->init();
 	}
