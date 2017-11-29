@@ -1,0 +1,31 @@
+env:
+  global:
+  - AWS_DEFAULT_REGION=us-west-2
+  - AWS_BUCKET=hornblower-builds
+  - secure: "E2vNXwnD7cnbwfmQ3g0e9qFRK1dgWXUQOiYEt56F8CkHWrOf/ChAbdyze9u0XiSBE2YHzMzaeBSD2YTE39Emk1jO7JjHICPxnyenCAUz0RVc+SDk2xfytLvmwn9SgPx5XfCcKwzpB4IHAy1E/WMdkFqvDITeYOoikmKA60Dzw9C3Snb62/C6PhqGpVGLbhmYPsAawVDIfGP/z93SdOPDXGrJ96EsDApQMevIjkUJM6y5V41Ij30xKYNms20/t/LLx3A+ETKokZow6T6kIaLeSA3VrHd90oGL2Mq18ZJCGqlEQl91d33FifpxUEEOssIQSeqWTQd+NY8b/A037k6Dcsr7i9QAVCYaOHj44P1h37LCtjYFt21dy/ohuiIWP55BTNNM8ADWh8f7cDAwQVdc+s76ocOlCAMbCgydD7iE59J2SdEJ7bdQVtMAK4kOcCBBcKfTUdz0AUCEmHaSORPBZPE4CFa53jEqRVE6KMOqgf9ryXE1lZkMu5odfB/yXT7mge85f6c+hQjbMmraZpSNlBxg/VCRfMb5m+T/yLlzK5GqQLYyZhduG4KBLeK31XiKFeUR8bXXjx6lkmwJHqmdCbQBpC/teQYWkkJArW9XVNom+vL43knMG5AyEyKlQl5f4I3a4u6WEGgwh9HmLo4oE7r9Uyx2sKj2UuC4e6fRtCA="
+  - secure: "RYyy4jqnMKCG8P/HxIBT9WZ9sAQwnL/+5Gk7jts7TWs48cks8ligajbplbsE2kX/kZdn7B0oLy/CTP+xjlcl28MoEfn5Ktr4Ddbz6+IpBb4lwx69lOPEd1w92kS26tkCt9BqW03SqXG40g3JHeDn81fJ7eLHo59fDFqzxKUZWQXMH7FuqbTZDsqCrxXpTTn9ACuNZf1dbhhqanpx1b+C9+7bZ0RYkUfAr0l+eZdyhXQiO+6AT6U10lr4OVI70/Yr/9AFpvhNQxu5ICcrg6v9Qx6ljbOB2Og4FpippcP53FEAojpBKAm8JdkvVYxBzxxnvX+HZmskJoal7hdpgb/bHQ/McTihJdeHBrengk6O9G9YG2WZQUqhDaTz8NMJ20C2Lgso77tlnr5nXDQHe7cDIX/nWsTqgqIutHityjGeU1GkgycrPJVrPDTk6ZLAFub5fjZ1cqwN5ZmN7a2seTHaiFpBNM6uCgDkP21rgHCCjYFsXW+A0dqFVgIocWhM2FLXHCtsh0/pSrRXQPfZZE3VQKpuZGIisd63LIj0xZlesNX0bxF70/Cv3tWsj+EP3fm1D/MBoMozsyHCAiIUz8gApojopPIFRSiV5SJSnGYrzKjBuYK6K0NxF3vYeNVoIaCgcFJMGIW7lslH5sWrRjZiVOUwak/xZeV5QiVqLgXrnJw="
+
+language: php
+php: 7.0
+# Skip running any tests
+script: phpunit --version
+
+notifications:
+  slack:
+    secure: "GrVoviSV7XRcdEZ3LM80rm+n+ABc3oEfnWm4AYx/iSlu0pBZIxmSs2DQIEkrx0i3Ue0Nq883nuWu4YX+flVeNOrcCgzULSBanu01/798ZcSeZbawC2rFYjK+vNRp7bJaK2/02GBzx+Tn+3QV+Zi8vOqJ1vQIL67Hii8uGpTG1ZSlfG+X/TolDpJGUfB+cvBEqo044CTR0yRL1q0mRcCzJF+7px7vNWIsXEcb47P05IyonN1mmLI8XB1g8itvYUA6Fylqy8zUwgXxc/+XP8E5Yw43hxosoFoRh+18aWwlhvqboOYVaWPFcibK7hlmReSTks3I//vysrCZ4QGkJgU7rXBsUbhuN/E3Eadez7DwRTM19HSCUUvkujIS5u7eDtkTC1/Ige1o3mzwWPujhBrF0idtNPa55FnC2eIpbIw5QWA2ueuwb7LYejO3Ngjw3jLH86Uvc+gPzpihoVIMjJP/5Q8Z+DBU3x7QQHCh9tXw3f0tiS2OzERjfaD/RXIuDwE3xSfKeOdsfBNJw0OchJ5JqTJKRhVPlNDWdYPn1CcLB5bQIDWbQ9lk5c6tSxB3mlkjHVkIdnU1g97Iqb/caqdj1bYz0NQR2B19ELTcJd63Y5mD7F1xEfFiZEAxGKqANEPWl+Xo7GL1Y5AFss0uSqvjC9PAWDrZH+dGJaWlKxCLN7E="
+
+before_deploy:
+  - pip install --user boto3
+  - rm -rf "${TRAVIS_BUILD_DIR}"/.git
+
+deploy:
+- provider: script
+  skip_cleanup: true
+  script: python build_artifact.py staging
+  on:
+    branch: staging
+- provider: script
+  skip_cleanup: true
+  script: python build_artifact.py production
+  on:
+    branch: production

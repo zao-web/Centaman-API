@@ -1,0 +1,17 @@
+# This file is used to configure Fabric, not Travis CI
+
+artifact_name: 'centaman-api-plugin'
+stages:
+  stg:
+    hosts: ['hnc-web01.stg.hbint.io']
+    branch: 'staging'
+  prod:
+    hosts: ['hnc-web01.prod.hbint.io']
+    branch: 'production'
+
+
+### Global config - Probably not necessary to modify this
+temp_dir: '/tmp/builds'
+# The trailing slash is IMPORTANT
+deploy_to: '/var/html/website/wp-content/plugins/'
+s3_bucket: 'hornblower-builds'
