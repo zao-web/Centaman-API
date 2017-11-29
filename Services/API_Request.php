@@ -11,8 +11,8 @@ abstract class API_Request {
 	protected $code;
 
 	public function __construct() {
-		$this->username = CENTAMAN_USERNAME;
-		$this->password = CENTAMAN_PASSWORD;
+		$this->username = CENTAMAN_API_USERNAME;
+		$this->password = CENTAMAN_API_PASSWORD;
 		$this->endpoint = CENTAMAN_API_URL;
 		$this->args     = array();
 		$this->init();
