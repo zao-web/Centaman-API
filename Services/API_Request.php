@@ -71,6 +71,11 @@ abstract class API_Request {
 	}
 
 	public function get_response() {
+		switch ( $this->code ) {
+			case 404:
+				return new \WP_Error( 'centaman_404', __( 'The request resulted in 404.', 'zao-centaman' ), $this );
+		}
+
 		return json_decode( $this->response );
 	}
 
