@@ -71,7 +71,18 @@ abstract class API_Request {
 	}
 
 	public function get_response() {
-		return json_decode( $this->response );
+		switch ( $this->code ) {
+			case 404:
+				return new \WP_Error( 'centaman_404', __( 'The request resulted in a 404.', 'zao-centaman' ), $this );
+		}
+
+		$response = json_decode( $this->response );
+
+		if ( null === $response && JSON_ERROR_NONE !== json_last_error() ) {
+			return new \WP_Error( 'centaman_json_error', sprintf( __( 'The response was not valid JSON. The json error: %s.', 'zao-centaman' ), json_last_error() ), $this );
+		}
+
+		return $response;
 	}
 
 	public function get_code() {
