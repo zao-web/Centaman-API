@@ -30,7 +30,7 @@
 	"homepage": "https://github.com/zao-web/Centaman-API",
 	"type": "wordpress-plugin",
 	"support": {
-		"issues": "https://github.com/zao-web/Centaman-API/issues",
+		"issues": "https://github.com/zao-web/Centaman-API/issues"
 	},
 	"require": {
 		"php": ">5.4.0"
