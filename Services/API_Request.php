@@ -43,6 +43,8 @@ abstract class API_Request {
 
 		$args = array_merge( $this->args, $this->get_default_args() );
 
+		add_filter( 'https_ssl_verify', '__return_false' );
+
 		switch ( $method ) :
 			case 'PUT' :
 				$request = wp_remote_request( $url, array_merge( $args, array( 'method' => 'PUT' ) ) );
@@ -54,6 +56,8 @@ abstract class API_Request {
 			case 'GET' :
 				$request = wp_remote_get( $url, $args );
 		endswitch;
+
+		remove_filter( 'https_ssl_verify', '__return_false' );
 
 		$this->request  = $request;
 		$this->response = wp_remote_retrieve_body( $request );
