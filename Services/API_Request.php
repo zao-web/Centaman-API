@@ -79,7 +79,14 @@ abstract class API_Request {
 		$response = json_decode( $this->response );
 
 		if ( null === $response && JSON_ERROR_NONE !== json_last_error() ) {
-			return new \WP_Error( 'centaman_json_error', sprintf( __( 'The response was not valid JSON. The json error: %s.', 'zao-centaman' ), json_last_error() ), $this );
+			return new \WP_Error(
+				'centaman_json_error',
+				sprintf(
+					__( 'The response was not valid JSON. The json error: %s.', 'zao-centaman' ),
+					self::get_json_error_message( json_last_error() )
+				),
+				$this
+			);
 		}
 
 		return $response;
@@ -101,5 +108,56 @@ abstract class API_Request {
 			)
 		);
 	}
+
+	/**
+	 * Get human-friendly JSON error description.
+	 *
+	 * @see http://php.net/manual/en/function.json-last-error.php#refsect1-function.json-last-error-returnvalues
+	 *
+	 * @param  mixed  $json_error_id The json_last_error() value.
+	 *
+	 * @return string                The error description.
+	 */
+	public static function get_json_error_message( $json_error_id ) {
+		$errors = array();
+		if ( defined( 'JSON_ERROR_NONE' ) ) {
+			$errors[JSON_ERROR_NONE] = __( 'No error has occurred', 'zao-centaman' );
+		}
+		if ( defined( 'JSON_ERROR_DEPTH' ) ) {
+			$errors[JSON_ERROR_DEPTH] = __( 'The maximum stack depth has been exceeded', 'zao-centaman' );
+		}
+		if ( defined( 'JSON_ERROR_STATE_MISMATCH' ) ) {
+			$errors[JSON_ERROR_STATE_MISMATCH] = __( 'Invalid or malformed JSON', 'zao-centaman' );
+		}
+		if ( defined( 'JSON_ERROR_CTRL_CHAR' ) ) {
+			$errors[JSON_ERROR_CTRL_CHAR] = __( 'Control character error, possibly incorrectly encoded', 'zao-centaman' );
+		}
+		if ( defined( 'JSON_ERROR_SYNTAX' ) ) {
+			$errors[JSON_ERROR_SYNTAX] = __( 'Syntax error', 'zao-centaman' );
+		}
+		if ( defined( 'JSON_ERROR_UTF8' ) ) {
+			$errors[JSON_ERROR_UTF8] = __( 'Malformed UTF-8 characters, possibly incorrectly encoded', 'zao-centaman' );
+		}
+		if ( defined( 'JSON_ERROR_RECURSION' ) ) {
+			$errors[JSON_ERROR_RECURSION] = __( 'One or more recursive references in the value to be encoded', 'zao-centaman' );
+		}
+		if ( defined( 'JSON_ERROR_INF_OR_NAN' ) ) {
+			$errors[JSON_ERROR_INF_OR_NAN] = __( 'One or more NAN or INF values in the value to be encoded', 'zao-centaman' );
+		}
+		if ( defined( 'JSON_ERROR_UNSUPPORTED_TYPE' ) ) {
+			$errors[JSON_ERROR_UNSUPPORTED_TYPE] = __( 'A value of a type that cannot be encoded was given', 'zao-centaman' );
+		}
+		if ( defined( 'JSON_ERROR_INVALID_PROPERTY_NAME' ) ) {
+			$errors[JSON_ERROR_INVALID_PROPERTY_NAME] = __( 'A property name that cannot be encoded was given', 'zao-centaman' );
+		}
+		if ( defined( 'JSON_ERROR_UTF16' ) ) {
+			$errors[JSON_ERROR_UTF16] = __( 'Malformed UTF-16 characters, possibly incorrectly encoded', 'zao-centaman' );
+		}
+
+		return isset( $errors[ $json_error_id ] )
+			? $errors[ $json_error_id ]
+			: __( 'Unknown error.', 'zao-centaman' );
+	}
+
 
 }
