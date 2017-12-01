@@ -10,8 +10,7 @@ class Ticket_Services extends API_Request {
 	}
 
 	public function get_tickets( $booking_type = null ) {
-
-		if ( $booking_type ) {
+		if ( empty( $booking_type ) ) {
 			$this->set_endpoint( 'TimedTicket' )->dispatch( 'GET' );
 		} else {
 			$this->set_endpoint( 'TimedTicket' )->set_query_args( array( 'TimedTicketTypeId' => $booking_type ) )->dispatch( 'GET' );
