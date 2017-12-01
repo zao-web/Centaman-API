@@ -1,0 +1,44 @@
+{
+	"name": "zao-web/Centaman-API",
+	"description": "Centaman API SDK for WordPress.",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "Justin Sternberg",
+			"email": "justin@dsgnwrks.pro",
+			"homepage": "https://zao.is",
+			"role": "Developer"
+		},
+		{
+			"name": "Justin Sainton",
+			"email": "justin@zao.is",
+			"homepage": "https://zao.is",
+			"role": "Developer"
+		},
+		{
+			"name": "Zao",
+			"email": "office@zao.is",
+			"homepage": "https://zao.is",
+			"role": "Developer"
+		}
+	],
+	"keywords": [
+		"wordpress",
+		"centaman",
+		"api"
+	],
+	"homepage": "https://github.com/zao-web/Centaman-API",
+	"type": "wordpress-plugin",
+	"support": {
+		"issues": "https://github.com/zao-web/Centaman-API/issues"
+	},
+	"require": {
+		"php": ">5.4.0"
+	},
+	"suggest": {
+		"composer/installers": "~1.0"
+	},
+	"require-dev": {
+		"phpunit/phpunit": "3.7.*"
+	}
+}
