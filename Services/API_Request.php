@@ -85,6 +85,10 @@ abstract class API_Request {
 		$response = json_decode( $this->response );
 
 		if ( null === $response && JSON_ERROR_NONE !== json_last_error() ) {
+			if ( is_wp_error( $this->request ) ) {
+				return $this->request;
+			}
+
 			return new \WP_Error(
 				'centaman_json_error',
 				sprintf(
