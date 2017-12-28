@@ -9,12 +9,14 @@ abstract class API_Request {
 	protected $response;
 	protected $request;
 	protected $code;
+	protected static $last_instance = null;
 
 	public function __construct() {
-		$this->username = CENTAMAN_API_USERNAME;
-		$this->password = CENTAMAN_API_PASSWORD;
-		$this->endpoint = CENTAMAN_API_URL;
-		$this->args     = array();
+		self::$last_instance = $this;
+		$this->username      = CENTAMAN_API_USERNAME;
+		$this->password      = CENTAMAN_API_PASSWORD;
+		$this->endpoint      = CENTAMAN_API_URL;
+		$this->args          = array();
 		$this->init();
 	}
 
@@ -68,6 +70,10 @@ abstract class API_Request {
 
 	public function get_request() {
 		return $this->request;
+	}
+
+	public function get_raw_response() {
+		return $this->response;
 	}
 
 	public function get_response() {
@@ -159,5 +165,8 @@ abstract class API_Request {
 			: __( 'Unknown error.', 'zao-centaman' );
 	}
 
+	public static function get_last_instance() {
+		return self::$last_instance;
+	}
 
 }

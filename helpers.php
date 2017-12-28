@@ -75,30 +75,43 @@ function centaman_create_transaction( $args ) {
 	);
 
 	return ( new \Zao\ZCSDK\Services\Ticket_Services() )->create_transaction( $args );
-
 }
 
 /**
- * This function is called to temporarily reserve tickets while the customer completes the transaction.
+ * This function is called to temporarily reserve tickets while the customer completes
+ * the transaction.
  *
  * Tickets that have been reserved reduce the Vacancy count for other web
  * sessions as well as desktop Point Of Sale.
  *
- * The temporary reservation is removed when the customer completes purchase and the reservation becomes permanent
- * or when they end the browser session
+ * The temporary reservation is removed when the customer completes purchase and the reservation
+ * becomes permanent or when they end the browser session
  *
- * @param  [type] $args [description] Expects an array of arrays:
- *  -> array(
- *  	 array(
- *  	 	'TimedTicketTypeId' => '2',
- *  	 	'TimedTicketId' => '2',
- *  	 	'NumberOfTickets' => '2',
-*  	     )
-*  	 )
- * @return [type]       [description]
+ * @param array $args Expects an array of arrays with the following parameters:
+ *                    Example:
+ * array(
+ *    array(
+ *        // TimedTicketTypeId: (int, Required) TimedTicketType Id (Centaman Internal Id).
+ *        'TimedTicketTypeId' => '2',
+ *
+ *        // TimedTicketId: (int, Required) Timed Ticket Id.
+ *        'TimedTicketId' => '2',
+ *
+ *        // NumberOfTickets: (int, Required) Number of spots reserving for TimedTicket.
+ *        'NumberOfTickets' => '2',
+ *    ),
+ * )
+ * @return mixed
  */
 function centaman_hold_spot( $args ) {
-
 	return ( new \Zao\ZCSDK\Services\Ticket_Services() )->hold_spot( $args );
+}
 
+/**
+ * Get the last api request instance, to use it's methods.
+ *
+ * @return null|\Zao\ZCSDK\Services\API_Request
+ */
+function centaman_get_last_api_request_instance() {
+	return \Zao\ZCSDK\Services\API_Request::get_last_instance();
 }
