@@ -178,4 +178,11 @@ class Ticket_Services extends API_Request {
 		return $this->get_response();
 	}
 
+	public function foreign_currency() {
+		$this->dispatch( 'GET' );
+		$this->set_endpoint( 'ForeignCurrency' )->dispatch( 'GET' );
+
+		return $this->get_response();
+	}
+
 }

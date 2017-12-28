@@ -108,6 +108,17 @@ function centaman_hold_spot( $args ) {
 }
 
 /**
+ * This method will return the Foreign Currency setup in the system and return the exchange rate.
+ *
+ * @since  [since]
+ *
+ * @return [type]  [description]
+ */
+function centaman_foreign_currency() {
+	return ( new \Zao\ZCSDK\Services\Ticket_Services() )->foreign_currency();
+}
+
+/**
  * Get the last api request instance, to use it's methods.
  *
  * @return null|\Zao\ZCSDK\Services\API_Request
