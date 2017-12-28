@@ -9,6 +9,16 @@ from fabric.contrib.files import exists
 from fabric.operations import require
 from fabric.utils import abort, warn
 
+from git import Repo
+
+# We depend on the repo name in Github for the canonical name, however the folder cloned locally could be
+# named differently. This code queries the `origin` remote and gets the repo name from git configuration
+# instead of expecting the folder name to also be the upstream repo name.
+repo = Repo()
+origin_url = repo.remotes.origin.url
+remote_repo_path = origin_url.split('/')[1]
+repo_name = remote_repo_path.split('.')[0]
+
 env.forward_agent = True
 
 with open('fabric_config.yaml') as file:
@@ -19,7 +29,6 @@ artifact_name = deploy_config.get('artifact_name')
 temp_dir = deploy_config.get('temp_dir')
 deploy_to = deploy_config.get('deploy_to')
 s3_bucket = deploy_config.get('s3_bucket')
-repo_name = os.path.basename(os.getcwd())
 
 
 def _get_latest_build():
