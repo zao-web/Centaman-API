@@ -80,6 +80,12 @@ abstract class API_Request {
 		switch ( $this->code ) {
 			case 404:
 				return new \WP_Error( 'centaman_404', __( 'The request resulted in a 404.', 'zao-centaman' ), $this );
+			case 400:
+				$msg = __( 'The request resulted in a 400.', 'zao-centaman' );
+				if ( ! empty( $this->response ) && is_string( $this->response ) ) {
+					$msg = $this->response;
+				}
+				return new \WP_Error( 'centaman_400', $msg, $this );
 		}
 
 		$response = json_decode( $this->response );
