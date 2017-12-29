@@ -118,52 +118,93 @@ class Ticket_Services extends API_Request {
 
 	public function create_transaction( $args ) {
 
-		if ( empty( $args ) ) {
+		if ( empty( $args ) || empty( $args['Item'] ) ) {
 			return false;
 		}
+		// TODO Once we have the ticket objects, we should be able to gather most of this.
 
-		// TODO Once we have the ticket objects from CMB2, we should be able to gather most of this.
+		// Docs: https://tickets.niagaracruises.com/CENTAMAN.API_Staging/Help/Api/POST-ticket_services-TimedTicketTransaction
 
-		$valid_items = [];
+		$request_object = wp_parse_args( $args, array(
+			// (Integer, Required) Internal id for the TimedTicketType(Primary Booking).
+			'TimedTicketTypeId' => 0,
+			// (String) The description of the TimedTicketType.
+			'TimedTicketTypeDescription' => '',
+			// (Integer, Required) Centaman booking type id.
+			'BookingTypeId' => 0,
+			// (Date, Required) The Date for which the booking is made.
+			'StartDate' => '',
+			// (String) The start time for the booking. whatever value passed in request will return to the response.
+			'StartTime' => '',
+			// (String) Finish time for the booking. whatever value passed in request will return to the response.
+			'EndTime' => '',
+			// (String, Required) The reference returned from payment gateway.
+			'PaymentReference' => '',
+			// (DateTime, Required) Date when transaction is made.
+			'TransactionDate' => self::timestamp(),
+			// (Integer, Required) The contact id of the person making booking. Should get as part of create_contact() response
+			'BookingContactID' => 0,
+			// (String) the contact name for the booking.
+			'BookingContactName' => '',
+			// (Decimal) Always Null for request object because this is used in response object.
+			'BalanceAmount' => 0.0,
+			// (Integer) if customer is paying using foreign currency then have to pass currencyid which you can get from GET ticket_services/ForeignCurrency method.
+			'ForeignCurrencyId' => 0,
+		) );
+
+		 // (Integer) These will always be null for request object, it is used for response object.
+		$request_object['ReceiptNo'] = $request_object['BookingId'] = 0;
+
+		// (Integer, Required) The total number of tickets.
+		$request_object['TotalTickets'] = 0;
+
+		// (Decimal, Required) Total tax paid for the booking.
+		$request_object['TaxPaid'] = 0.0;
+
+		// (Decimal, Required) The total booking cost excluding tax.
+		$request_object['BookingCost'] = 0.0;
+
+		// (Array, Required) Array of ticket items.
+		$request_object['Item'] = array();
 
 		// Validate Ticket objects
 		foreach ( $args['Item'] as $item ) {
 			// Validate required fields, data types, etc.
-			// TODO: Get clarification from Tim on taxes
-			$item = array(
-				'ItemDescription' => $item['ticket_description'], // TicketDescription returned from GET ticket_services/TimedTicket?TimedTicketTypeId={TimedTicketTypeId}.
-				'ItemCode'        => $item['ticket_id'], // TicketId of the Ticket
-				'Quantity'        => $item['count'],
-				'ItemCost'        => $item['ticket_price'],
-				'TotalPaid'       => $item['line_total'],
-				'TaxPaid'         => 0,
-				'AttendeeName'    => '',
-				'Barcode'         => '',
-				'IsExtraItem'     => false,
-			 );
+			$item = wp_parse_args( $item, array(
+				// (String) TicketDescription returned from GET ticket_services/TimedTicket?TimedTicketTypeId={TimedTicketTypeId}.
+				'ItemDescription' => '',
+				// (Integer, Required) TicketId of the Ticket if TimedTicket, ExtraId if Extra item.
+				'ItemCode' => 0,
+				// (Integer, Required) Total Quantity of this item.
+				'Quantity' => 0,
+				// (Decimal, Required) Unit Tax paid for this item.
+				// TODO : Get clarification from Tim on taxes
+				'TaxPaid' => 0.0,
+				// (Decimal, Required) Unit cost of the item excluding tax.
+				'ItemCost' => 0.0,
+				// (object) The details of the attendee.
+				'AttendeeName' => array(),
+				// (Bool, Required) If the item is TimedTicket then this will be false and for extra items this will be true.
+				'IsExtraItem' => false,
+				// (String) The coupon code applied, This coupon code has to be setup in Centaman.
+				'CouponCode' => '',
+			) );
 
-			 array_push( $valid_items, $item );
+			// (String) This will always be null for request, It is used for response.
+			$item['Barcode'] = '';
+
+			// (Decimal, Required) Total paid for this item including tax.
+			$item['TotalPaid'] = $item['TaxPaid'] + $item['ItemCost'];
+
+			$request_object['Item'][] = $item;
+
+			$request_object['TotalTickets'] += $item['Quantity'];
+			$request_object['TaxPaid'] += $item['TaxPaid'];
+			$request_object['BookingCost'] += $item['ItemCost'];
 		}
 
-		$request_object = array(
-			'TimedTicketTypeId'          => $args['timed_ticket_type_id'],
-			'TimedTicketTypeDescription' => $args['timed_ticket_type_description'],
-			'BookingTypeId'              => $args['booking_type_id'],
-			'StartDate'                  => $args['booking_date'],
-			'StartTime'                  => $args['booking_start_time'],
-			'EndTime'                    => $args['booking_end_time'],
-			'PaymentReference'           => $args['transaction_id'], // Should pass through from global Payments
-			'BookingCost'                => $args['total'],
-			'TotalPaid'                  => $args['total'],
-			'BookingContactId'           => $args['member_code'], //Should get as part of create_contact() response
-			'TotalTickets'               => $args['total_tickets'],
-			'TaxPaid'                    => 0,
-			'TransactionDate'            => date( 'Y-m-d' ),
-			'BalanceAmount'              => '',
-			'ReceiptNo'                  => '',
-			'BookingId'                  => '',
-			'Item'                       => $valid_items
-		);
+		// (Decimal, Required) Total deposit paid for the booking including tax.
+		$request_object['TotalPaid'] = $request_object['TaxPaid'] + $request_object['BookingCost'];
 
 		return $this
 			->set_endpoint( 'TimedTicketTransaction' )
@@ -180,6 +221,31 @@ class Ticket_Services extends API_Request {
 		return $this->set_endpoint( 'ForeignCurrency' )
 			->dispatch( 'GET' )
 			->get_response();
+	}
+
+	protected static function timestamp() {
+
+		$timestamp = current_time( 'mysql' );
+		try {
+			$tzstring = get_option( 'timezone_string' );
+			if ( empty( $tzstring ) ) { // Create a UTC+- zone if no timezone string exists
+				$check_zone_info = false;
+				if ( 0 == $current_offset ) {
+					$tzstring = 'UTC+0';
+				} elseif ( $current_offset < 0 ) {
+					$tzstring = 'UTC' . $current_offset;
+				} else {
+					$tzstring = 'UTC+' . $current_offset;
+				}
+			}
+
+			$datetime = new DateTime( $timestamp, new DateTimeZone( $tzstring ) );
+			$timestamp = $datetime->format( 'Y-m-d\TH:i:s.uP' ); // RFC3339_EXTENDED
+
+		} catch ( \Exception $e ) {
+		}
+
+		return $timestamp;
 	}
 
 }
