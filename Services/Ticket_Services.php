@@ -111,7 +111,7 @@ class Ticket_Services extends API_Request {
 	 */
 	public function hold_spot( $args ) {
 		return $this->set_endpoint( 'TimedTicketType' )
-			->set_args( array( 'body' => $args ) )
+			->set_args( array( 'body' => wp_json_encode( $args ) ) )
 			->dispatch( 'POST' )
 			->get_response();
 	}
