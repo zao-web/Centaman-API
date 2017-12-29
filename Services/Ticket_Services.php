@@ -42,7 +42,7 @@ class Ticket_Services extends API_Request {
 
 		return $this
 			->set_endpoint( 'TimedTicket' )
-			->set_args( $args )
+			->set_args( array( 'body' => wp_json_encode( $args ) ) )
 			->dispatch( 'POST' )
 			->get_response();
 	}
@@ -208,11 +208,7 @@ class Ticket_Services extends API_Request {
 
 		return $this
 			->set_endpoint( 'TimedTicketTransaction' )
-			->set_args(
-				array(
-					'body' => $request_object
-				)
-			)
+			->set_args( array( 'body' => wp_json_encode( $request_object ) ) )
 			->dispatch( 'POST' )
 			->get_response();
 	}

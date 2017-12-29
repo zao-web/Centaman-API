@@ -20,7 +20,7 @@ class Member_Services extends API_Request {
 
 		$this
 			->set_endpoint( 'Authenticaton' )
-			->set_args( array( 'body' => $args ) )
+			->set_args( array( 'body' => wp_json_encode( $args ) ) )
 			->dispatch( 'POST' );
 
 		// TODO: Determine authentication state management - WP User? Local Storage? Cookie?
