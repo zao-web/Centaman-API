@@ -94,8 +94,8 @@ function centaman_create_transaction( $args ) {
  *        // TimedTicketTypeId: (int, Required) TimedTicketType Id (Centaman Internal Id).
  *        'TimedTicketTypeId' => '2',
  *
- *        // TimedTicketId: (int, Required) Timed Ticket Id.
- *        'TimedTicketId' => '2',
+ *        // TicketId: (int, Required) Timed Ticket Id.
+ *        'TicketId' => '2',
  *
  *        // NumberOfTickets: (int, Required) Number of spots reserving for TimedTicket.
  *        'NumberOfTickets' => '2',
