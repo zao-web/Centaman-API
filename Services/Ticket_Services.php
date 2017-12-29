@@ -110,7 +110,7 @@ class Ticket_Services extends API_Request {
 	 * @return [type]       [description]
 	 */
 	public function hold_spot( $args ) {
-		$this->set_endpoint( 'TimedTicketType' )
+		return $this->set_endpoint( 'TimedTicketType' )
 			->set_args( array( 'body' => $args ) )
 			->dispatch( 'POST' )
 			->get_response();
