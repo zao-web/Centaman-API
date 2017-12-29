@@ -5,18 +5,18 @@ class Ticket_Services extends API_Request {
 	protected $args;
 
 	protected function init() {
-		$this->set_endpoint( 'ticket_services' );
-		return $this;
+		return $this->set_endpoint( 'ticket_services' );
 	}
 
 	public function get_tickets( $booking_type = null ) {
-		if ( empty( $booking_type ) ) {
-			$this->set_endpoint( 'TimedTicket' )->dispatch( 'GET' );
-		} else {
-			$this->set_endpoint( 'TimedTicket' )->set_query_args( array( 'TimedTicketTypeId' => $booking_type ) )->dispatch( 'GET' );
+		$this->set_endpoint( 'TimedTicket' );
+
+		if ( ! empty( $booking_type ) ) {
+			$this->set_query_args( array( 'TimedTicketTypeId' => $booking_type ) );
 		}
 
-		return $this->get_response();
+		return $this->dispatch( 'GET' )
+			->get_response();
 	}
 
 	public function create_contact( $args ) {
@@ -28,27 +28,23 @@ class Ticket_Services extends API_Request {
 			'Address'   => array(),
 		) );
 
-		// TODO Flesh out address once we know what the fields look like in CMB2.
-		/*
-		"Address": {
-		    "Street1": "sample string 1",
-		    "Street2": "sample string 2",
-		    "City": "sample string 3",
-		    "State": "sample string 4",
-		    "Postalcode": "sample string 5",
-		    "Country": "sample string 6",
-		    "HomePhone": "sample string 7",
-		    "WorkPhone": "sample string 8",
-		    "MobilePhone": "sample string 9"
-		},
-		*/
+		$args['Address'] = wp_parse_args( $args['Address'], array(
+			'Street1'     => '',
+			// 'Street2'     => '',
+			'City'        => '',
+			'State'       => '',
+			'Postalcode'  => '',
+			'Country'     => '',
+			'HomePhone'   => '',
+			// 'WorkPhone'   => '',
+			// 'MobilePhone' => '',
+		) );
 
-		$this
+		return $this
 			->set_endpoint( 'TimedTicket' )
 			->set_args( $args )
-			->dispatch( 'POST' );
-
-		return $this;
+			->dispatch( 'POST' )
+			->get_response();
 	}
 
 	/**
@@ -64,7 +60,7 @@ class Ticket_Services extends API_Request {
 	 */
 	public function get_timed_ticket_types( $booking_type_id = 0, $start = '', $end = '' ) {
 
-		$args = [];
+		$args = array();
 
 		if ( $booking_type_id ) {
 			$args['BookingTypeId'] = $booking_type_id;
@@ -84,21 +80,21 @@ class Ticket_Services extends API_Request {
 			$this->set_query_args( $args );
 		}
 
-		$this->dispatch( 'GET' );
-
-		return $this->get_response();
-
+		return $this->dispatch( 'GET' )
+			->get_response();
 	}
 
 
 	public function get_capacity( $timed_ticket_type_id, $start_date ) {
 
-		$this->set_endpoint( 'TimedTicketType' )->set_query_args( array( 'TimedTicketTypeId' => $timed_ticket_type_id, 'StartDate' => $start_date ) )->dispatch( 'GET' );
-
-
-		// TODO: Likely need to iterate through this response, as I believe it may return multiple booking types.
-		return $this->get_response();
-
+		$this->set_endpoint( 'TimedTicketType' )
+			->set_query_args( array(
+				'TimedTicketTypeId' => $timed_ticket_type_id,
+				'StartDate'         => $start_date,
+			) )
+			->dispatch( 'GET' )
+			// TODO: Likely need to iterate through this response, as I believe it may return multiple booking types.
+			->get_response();
 	}
 
 	/**
@@ -114,7 +110,10 @@ class Ticket_Services extends API_Request {
 	 * @return [type]       [description]
 	 */
 	public function hold_spot( $args ) {
-		$this->set_endpoint( 'TimedTicketType' )->set_args( array( 'body' => $args ) )->dispatch( 'POST' );
+		$this->set_endpoint( 'TimedTicketType' )
+			->set_args( array( 'body' => $args ) )
+			->dispatch( 'POST' )
+			->get_response();
 	}
 
 	public function create_transaction( $args ) {
@@ -166,23 +165,21 @@ class Ticket_Services extends API_Request {
 			'Item'                       => $valid_items
 		);
 
-		$this
+		return $this
 			->set_endpoint( 'TimedTicketTransaction' )
 			->set_args(
 				array(
 					'body' => $request_object
 				)
 			)
-			->dispatch( 'POST' );
-
-		return $this->get_response();
+			->dispatch( 'POST' )
+			->get_response();
 	}
 
 	public function foreign_currency() {
-		$this->dispatch( 'GET' );
-		$this->set_endpoint( 'ForeignCurrency' )->dispatch( 'GET' );
-
-		return $this->get_response();
+		return $this->set_endpoint( 'ForeignCurrency' )
+			->dispatch( 'GET' )
+			->get_response();
 	}
 
 }
