@@ -234,7 +234,7 @@ class Ticket_Services extends API_Request {
 				}
 			}
 
-			$datetime = new DateTime( $timestamp, new DateTimeZone( $tzstring ) );
+			$datetime = new \DateTime( $timestamp, new \DateTimeZone( $tzstring ) );
 			$timestamp = $datetime->format( 'Y-m-d\TH:i:s.uP' ); // RFC3339_EXTENDED
 
 		} catch ( \Exception $e ) {
