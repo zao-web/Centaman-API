@@ -86,8 +86,7 @@ class Ticket_Services extends API_Request {
 
 
 	public function get_capacity( $timed_ticket_type_id, $start_date ) {
-
-		$this->set_endpoint( 'TimedTicketType' )
+		return $this->set_endpoint( 'TimedTicketType' )
 			->set_query_args( array(
 				'TimedTicketTypeId' => $timed_ticket_type_id,
 				'StartDate'         => $start_date,
