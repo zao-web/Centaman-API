@@ -13,6 +13,10 @@ function centaman_member_authenticate( $args ) {
 	return $auth->is_authenticated();
 }
 
+function centaman_get_member( $member_id ) {
+	return ( new Zao\ZCSDK\Services\Member_Services() )->get( $member_id );
+}
+
 /**
  * Returns all timed ticket booking types.
  * If a Booking ID is passed, returns tickets for just that type.

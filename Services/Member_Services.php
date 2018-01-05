@@ -27,6 +27,13 @@ class Member_Services extends API_Request {
 		return $this;
 	}
 
+	public function get( $member_id ) {
+		return $this
+			->set_endpoint( 'Member/' . $member_id )
+			->dispatch( 'GET' )
+			->get_response();
+	}
+
 	/**
 	 * @return boolean [description]
 	 */
