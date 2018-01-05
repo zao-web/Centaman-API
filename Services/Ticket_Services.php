@@ -243,7 +243,9 @@ class Ticket_Services extends API_Request {
 
 		$timestamp = current_time( 'mysql' );
 		try {
+			$current_offset = get_option( 'gmt_offset' );
 			$tzstring = get_option( 'timezone_string' );
+
 			if ( empty( $tzstring ) ) { // Create a UTC+- zone if no timezone string exists
 				$check_zone_info = false;
 				if ( 0 == $current_offset ) {
