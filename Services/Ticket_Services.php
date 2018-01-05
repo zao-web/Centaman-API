@@ -116,11 +116,30 @@ class Ticket_Services extends API_Request {
 	}
 
 	public function create_transaction( $args ) {
+		if ( empty( $args ) ) {
+			return false;
+		}
 
+		$request_objects = array();
+		if ( isset( $args[0]['Item'] ) ) {
+			foreach ( $args as $rquest_args ) {
+				$request_objects[] = self::create_transaction_object( $rquest_args );
+			}
+		} else {
+			$request_objects[] = self::create_transaction_object( $args );
+		}
+
+		return $this
+			->set_endpoint( 'TimedTicketTransaction' )
+			->set_args( array( 'body' => wp_json_encode( $request_objects ) ) )
+			->dispatch( 'POST' )
+			->get_response();
+	}
+
+	public function create_transaction_object( $args ) {
 		if ( empty( $args ) || empty( $args['Item'] ) ) {
 			return false;
 		}
-		// TODO Once we have the ticket objects, we should be able to gather most of this.
 
 		// Docs: https://tickets.niagaracruises.com/CENTAMAN.API_Staging/Help/Api/POST-ticket_services-TimedTicketTransaction
 
@@ -145,14 +164,12 @@ class Ticket_Services extends API_Request {
 			'BookingContactID' => 0,
 			// (String) the contact name for the booking.
 			'BookingContactName' => '',
-			// (Decimal) Always Null for request object because this is used in response object.
-			'BalanceAmount' => 0.0,
 			// (Integer) if customer is paying using foreign currency then have to pass currencyid which you can get from GET ticket_services/ForeignCurrency method.
-			'ForeignCurrencyId' => 0,
+			// 'ForeignCurrencyId' => 0,
 		) );
 
 		 // (Integer) These will always be null for request object, it is used for response object.
-		$request_object['ReceiptNo'] = $request_object['BookingId'] = 0;
+		// $request_object['ReceiptNo'] = $request_object['BookingId'] = $request_object['BalanceAmount'] = 0;
 
 		// (Integer, Required) The total number of tickets.
 		$request_object['TotalTickets'] = 0;
@@ -181,35 +198,39 @@ class Ticket_Services extends API_Request {
 				'TaxPaid' => 0.0,
 				// (Decimal, Required) Unit cost of the item excluding tax.
 				'ItemCost' => 0.0,
-				// (object) The details of the attendee.
-				'AttendeeName' => array(),
+				// (object) The details of the attendees.
+				// 'AttendeesDetails' => array(
+					// array(
+					// 	'AttendeeFirstName'  => 'sample string 1',
+					// 	'AttendeeLastName'   => 'sample string 2',
+					// 	'AttendeeMemberCode' => 1,
+					// ),
+				// ),
 				// (Bool, Required) If the item is TimedTicket then this will be false and for extra items this will be true.
 				'IsExtraItem' => false,
 				// (String) The coupon code applied, This coupon code has to be setup in Centaman.
-				'CouponCode' => '',
+				// 'CouponCode' => '',
 			) );
 
 			// (String) This will always be null for request, It is used for response.
-			$item['Barcode'] = '';
+			// $item['Barcode'] = '';
+			$total_tax = $item['Quantity'] * $item['TaxPaid'];
+			$total_cost = $item['Quantity'] * $item['ItemCost'];
 
 			// (Decimal, Required) Total paid for this item including tax.
-			$item['TotalPaid'] = $item['TaxPaid'] + $item['ItemCost'];
+			$item['TotalPaid'] = $total_tax + $total_cost;
 
 			$request_object['Item'][] = $item;
 
 			$request_object['TotalTickets'] += $item['Quantity'];
-			$request_object['TaxPaid'] += $item['TaxPaid'];
-			$request_object['BookingCost'] += $item['ItemCost'];
+			$request_object['TaxPaid'] += $total_tax;
+			$request_object['BookingCost'] += $total_cost;
 		}
 
 		// (Decimal, Required) Total deposit paid for the booking including tax.
 		$request_object['TotalPaid'] = $request_object['TaxPaid'] + $request_object['BookingCost'];
 
-		return $this
-			->set_endpoint( 'TimedTicketTransaction' )
-			->set_args( array( 'body' => wp_json_encode( $request_object ) ) )
-			->dispatch( 'POST' )
-			->get_response();
+		return $request_object;
 	}
 
 	public function foreign_currency() {

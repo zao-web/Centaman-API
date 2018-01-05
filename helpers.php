@@ -55,29 +55,6 @@ function centaman_get_remaining_event_capacity( $timed_ticket_type_id, $start_da
  * @return [type]       [description]
  */
 function centaman_create_transaction( $args ) {
-
-	// Example $args expected to be passed:
-	$_args = array(
-		'TimedTicketTypeId'          => $args['timed_ticket_type_id'], //  This is internal id for the TimedTicketType(Primary Booking)
-		'TimedTicketTypeDescription' => $args['timed_ticket_type_description'], // The description of the TimedTicketType
-		'BookingTypeId'              => $args['booking_type_id'],
-		'StartDate'                  => $args['booking_date'],
-		'StartTime'                  => $args['booking_start_time'],
-		'EndTime'                    => $args['booking_end_time'],
-		'PaymentReference'           => $args['transaction_id'], // Should pass through from global Payments
-		'BookingCost'                => $args['total'],
-		'TotalPaid'                  => $args['total'],
-		'BookingContactId'           => $args['member_code'], //Should get as part of create_contact() response
-		'TotalTickets'               => $args['total_tickets'],
-		'Item'                       => array(
-			'ItemDescription' => $item['ticket_description'], // TicketDescription returned from GET ticket_services/TimedTicket?TimedTicketTypeId={TimedTicketTypeId}.
-			'ItemCode'        => $item['ticket_id'], // TicketId of the Ticket
-			'Quantity'        => $item['count'],
-			'ItemCost'        => $item['ticket_price'],
-			'TotalPaid'       => $item['line_total'],
-		)
-	);
-
 	return ( new \Zao\ZCSDK\Services\Ticket_Services() )->create_transaction( $args );
 }
 
