@@ -77,15 +77,14 @@ abstract class API_Request {
 	}
 
 	public function get_response() {
-		switch ( $this->code ) {
-			case 404:
-				return new \WP_Error( 'centaman_404', __( 'The request resulted in a 404.', 'zao-centaman' ), $this );
-			case 400:
-				$msg = __( 'The request resulted in a 400.', 'zao-centaman' );
+		switch ( $this->get_code_level() ) {
+			case 4:
+			case 5:
+				$msg = sprintf( __( 'The request resulted in a %s.', 'zao-centaman' ), $this->code );
 				if ( ! empty( $this->response ) && is_string( $this->response ) ) {
 					$msg = $this->response;
 				}
-				return new \WP_Error( 'centaman_400', $msg, $this );
+				return new \WP_Error( 'centaman_' . $this->code, $msg, $this );
 		}
 
 		$response = json_decode( $this->response );
@@ -112,7 +111,12 @@ abstract class API_Request {
 		return $this->code;
 	}
 
-	protected function get_endpoint() {
+	public function get_code_level() {
+		$code = (string) $this->code;
+		return isset( $code[0] ) ? $code[0] : 0;;
+	}
+
+	public function get_endpoint() {
 		return $this->endpoint;
 	}
 
