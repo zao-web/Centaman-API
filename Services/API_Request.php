@@ -183,4 +183,19 @@ abstract class API_Request {
 		return self::$last_instance;
 	}
 
+	public function __call( $endpoint, $args ) {
+		$this->set_endpoint( $endpoint );
+		if ( ! empty( $args[0]['endpoint'] ) ) {
+			$this->set_endpoint( $args[0]['endpoint'] );
+			unset( $args[0]['endpoint'] );
+		}
+
+		if ( ! empty( $args[0] ) ) {
+			$this->set_query_args( $args[0] );
+		}
+
+		return $this
+			->dispatch( 'GET' )
+			->get_response();
+	}
 }
