@@ -37,7 +37,10 @@ def _get_latest_build():
     r = s3.list_objects(Bucket=s3_bucket)
     target_match = '/'.join((repo_name, '_'.join((repo_name, env.branch))))
     available_builds = [x.get('Key') for x in r.get('Contents') if x.get('Key').startswith(target_match)]
-    return available_builds[-1]
+    try:
+        return available_builds[-1]
+    except IndexError:
+        abort('Unable to find any builds in S3. Check that TravisCI is uploading builds.')
 
 
 def _get_current_build():
