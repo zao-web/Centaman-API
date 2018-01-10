@@ -129,11 +129,14 @@ class Ticket_Services extends API_Request {
 	/**
 	 * Create a ticket transaction.
 	 *
-	 * @param  array $args Arguments to convert to transaction data.
+	 * @param  array $args           Arguments to convert to transaction data.
+	 * @param  bool  $chunk_requests Whether to break up multiple tickets
+	 *                               into multiple requests. Helps alleviate
+	 *                               timeouts during the request.
 	 *
-	 * @return mixed       Results or array of results (if $chunk_requests is true)
+	 * @return mixed                 Results or array of results (if $chunk_requests is true)
 	 */
-	public function create_transaction( $args ) {
+	public function create_transaction( $args, $chunk_requests = true ) {
 		if ( empty( $args ) ) {
 			return false;
 		}
@@ -147,9 +150,25 @@ class Ticket_Services extends API_Request {
 			$request_objects[] = self::create_transaction_object( $args );
 		}
 
+		$request_objects = self::maybe_combine_transaction_objects( $request_objects );
+		$this->set_endpoint( 'TimedTicketTransaction' );
+
+		if ( $chunk_requests ) {
+			$responses = array();
+
+			foreach ( $request_objects as $request_object ) {
+				$responses[] = $this->perform_transaction( array( $request_object ) );
+			}
+
+			return $responses;
+		}
+
+		return $this->perform_transaction( $request_objects );
+	}
+
+	protected function perform_transaction( $request_object ) {
 		return $this
-			->set_endpoint( 'TimedTicketTransaction' )
-			->set_args( array( 'body' => wp_json_encode( $request_objects ) ) )
+			->set_args( array( 'body' => wp_json_encode( $request_object ) ) )
 			->dispatch( 'POST' )
 			->get_response();
 	}
@@ -249,6 +268,85 @@ class Ticket_Services extends API_Request {
 		$request_object['TotalPaid'] = $request_object['TaxPaid'] + $request_object['BookingCost'];
 
 		return $request_object;
+	}
+
+	protected static function maybe_combine_transaction_objects( $objects ) {
+		$unique = array();
+
+		foreach ( $objects as $object ) {
+			$id = '';
+			$id .= ':' . $object['PaymentReference'];
+			$id .= ':' . $object['BookingContactID'];
+			$id .= ':' . $object['TimedTicketTypeId'];
+			$id .= ':' . $object['BookingTypeId'];
+			$id .= ':' . $object['StartDate'];
+
+			if ( isset( $unique[ $id ] ) ) {
+				$unique[ $id ] = self::combine_transaction_objects( $unique[ $id ], $object );
+			} else {
+				$unique[ $id ] = $object;
+			}
+		}
+
+		return array_values( $unique );
+	}
+
+	protected static function combine_transaction_objects( $orig, $new ) {
+		$orig = wp_parse_args( $orig, array(
+			'TimedTicketTypeId'          => $new['TimedTicketTypeId'],
+			'TimedTicketTypeDescription' => $new['TimedTicketTypeDescription'],
+			'BookingTypeId'              => $new['BookingTypeId'],
+			'StartDate'                  => $new['StartDate'],
+			'StartTime'                  => $new['StartTime'],
+			'EndTime'                    => $new['EndTime'],
+			'PaymentReference'           => $new['PaymentReference'],
+			'TransactionDate'            => $new['TransactionDate'],
+			'BookingContactID'           => $new['BookingContactID'],
+			'BookingContactName'         => $new['BookingContactName'],
+		) );
+
+		$orig['TotalTickets'] = 0;
+		$orig['TaxPaid'] = 0.0;
+		$orig['BookingCost'] = 0.0;
+
+		$new_items = array();
+
+		$all_items = array_merge( $orig['Item'], $new['Item'] );
+
+		foreach ( $all_items as $item ) {
+
+			$id = '';
+			$id .= ':' . $item['ItemCode'];
+			$id .= ':' . floatval( $item['TaxPaid'] );
+			$id .= ':' . floatval( $item['ItemCost'] );
+			$id .= ':' . ( ! empty( $item['IsExtraItem'] ) ? '1' : '0' );
+
+			if ( ! isset( $new_items[ $id ] ) ) {
+				$new_items[ $id ] = $item;
+				continue;
+			}
+
+			$new_items[ $id ]['Quantity'] += $item['Quantity'];
+
+			$total_tax = $new_items[ $id ]['Quantity'] * $item['TaxPaid'];
+			$total_cost = $new_items[ $id ]['Quantity'] * $item['ItemCost'];
+
+			$new_items[ $id ]['TotalPaid'] = $total_tax + $total_cost;
+		}
+
+		foreach ( $new_items as $item ) {
+			$total_tax = $item['Quantity'] * $item['TaxPaid'];
+			$total_cost = $item['Quantity'] * $item['ItemCost'];
+
+			$orig['TotalTickets'] += $item['Quantity'];
+			$orig['TaxPaid'] += $total_tax;
+			$orig['BookingCost'] += $total_cost;
+		}
+
+		$orig['Item'] = array_values( $new_items );
+		$orig['TotalPaid'] = $orig['TaxPaid'] + $orig['BookingCost'];
+
+		return $orig;
 	}
 
 	protected static function timestamp() {
