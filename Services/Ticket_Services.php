@@ -115,6 +115,24 @@ class Ticket_Services extends API_Request {
 			->get_response();
 	}
 
+	/**
+	 * Request data from the foreign currency endpoint.
+	 *
+	 * @return [type]  [description]
+	 */
+	public function foreign_currency() {
+		return $this->set_endpoint( 'ForeignCurrency' )
+			->dispatch( 'GET' )
+			->get_response();
+	}
+
+	/**
+	 * Create a ticket transaction.
+	 *
+	 * @param  array $args Arguments to convert to transaction data.
+	 *
+	 * @return mixed       Results or array of results (if $chunk_requests is true)
+	 */
 	public function create_transaction( $args ) {
 		if ( empty( $args ) ) {
 			return false;
@@ -136,7 +154,7 @@ class Ticket_Services extends API_Request {
 			->get_response();
 	}
 
-	public function create_transaction_object( $args ) {
+	protected static function create_transaction_object( $args ) {
 		if ( empty( $args ) || empty( $args['Item'] ) ) {
 			return false;
 		}
@@ -231,12 +249,6 @@ class Ticket_Services extends API_Request {
 		$request_object['TotalPaid'] = $request_object['TaxPaid'] + $request_object['BookingCost'];
 
 		return $request_object;
-	}
-
-	public function foreign_currency() {
-		return $this->set_endpoint( 'ForeignCurrency' )
-			->dispatch( 'GET' )
-			->get_response();
 	}
 
 	protected static function timestamp() {
