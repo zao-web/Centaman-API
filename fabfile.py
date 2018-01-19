@@ -112,7 +112,7 @@ def deploy():
     if latest_build.split('/')[1] == current_build:
         warn('You are about to deploy the exact same build again')
 
-    print 'Build currently deployed:', current_build
+    print 'Build currently deployed:     ', current_build
     print 'Build available for deploying:', latest_build.split('/')[1]
     print
     continue_prompt = prompt('Ready to deploy? (y/n)', validate=r'^[YNyn]{1}$', default='y')
