@@ -231,7 +231,6 @@ class Ticket_Services extends API_Request {
 				// (Integer, Required) Total Quantity of this item.
 				'Quantity' => 0,
 				// (Decimal, Required) Unit Tax paid for this item.
-				// TODO : Get clarification from Tim on taxes
 				'TaxPaid' => 0.0,
 				// (Decimal, Required) Unit cost of the item excluding tax.
 				'ItemCost' => 0.0,
