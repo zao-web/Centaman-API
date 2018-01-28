@@ -4,8 +4,9 @@ import yaml
 
 from botocore.exceptions import ClientError
 import boto3
-from fabric.api import run, env, task, prompt, sudo, cd
+from fabric.api import run, env, task, sudo, cd
 from fabric.contrib.files import exists
+from fabric.contrib.console import confirm
 from fabric.operations import require
 from fabric.utils import abort, warn
 
@@ -57,16 +58,38 @@ def download_build(s3_bucket, build_id, temp_dir):
         _, build_filename = build_id.split('/')
         sudo('tar xf %s' % build_filename)
 
+    path_to_deployed_artifact = os.path.join(deploy_to, artifact_name)
+
+    if 'wp-content' in repo_name:
+        _wpcontent(temp_dir, build_filename, path_to_deployed_artifact)
+    else:
+        _normal(temp_dir, build_filename, path_to_deployed_artifact)
+
+    _cleanup_build_dir()
+
+
+def _wpcontent(temp_dir, build_filename, path_to_deployed_artifact):
+    # The steps for deploying the `wp-content/` folder are a special case so that we don't blow away
+    # the folders inside that that we're deploying separately (eg, everything in `plugins/` and `themes/`)
+    with cd(temp_dir):
+        sudo('mv hnc-%s %s' % (artifact_name, artifact_name))
+        sudo('rsync -a %s/* %s' % (artifact_name, path_to_deployed_artifact))
+
+    sudo('find %s -type f -name *.php -exec chown deployer:deployer {} \;' % path_to_deployed_artifact)
+    sudo('find %s -type f -name *.php -exec chmod 644 {} \;' % path_to_deployed_artifact)
+    sudo('find %s -type d -exec chown deployer:deployer {} \;' % os.path.join(path_to_deployed_artifact, 'mu-plugins'))
+    sudo('find %s -type d -exec chmod 755 {} \;' % os.path.join(path_to_deployed_artifact, 'mu-plugins'))
+    sudo('echo %s > %s/.current_version' % (build_filename, path_to_deployed_artifact))
+
+
+def _normal(temp_dir, build_filename, path_to_deployed_artifact):
     with cd(temp_dir):
         sudo('rsync -a --delete %s %s' % (artifact_name, deploy_to))
 
-    path_to_deployed_artifact = os.path.join(deploy_to, artifact_name)
     sudo('chown -R deployer:deployer %s' % path_to_deployed_artifact)
     sudo('find %s -type f -exec chmod 644 {} \;' % path_to_deployed_artifact)
     sudo('find %s -type d -exec chmod 755 {} \;' % path_to_deployed_artifact)
     sudo('echo %s > %s/.current_version' % (build_filename, path_to_deployed_artifact))
-
-    _cleanup_build_dir()
 
 
 def _cleanup_build_dir():
@@ -90,7 +113,7 @@ def stg():
 
 
 @task
-def deploy():
+def deploy(override_prompt=False):
     """
     Deploy the project.
     """
@@ -115,7 +138,8 @@ def deploy():
     print 'Build currently deployed:     ', current_build
     print 'Build available for deploying:', latest_build.split('/')[1]
     print
-    continue_prompt = prompt('Ready to deploy? (y/n)', validate=r'^[YNyn]{1}$', default='y')
-    if not continue_prompt == 'y' or continue_prompt == 'Y':
-        abort('Aborting...')
+    if not override_prompt:
+        continue_prompt = confirm('Ready to deploy?')
+        if not continue_prompt:
+            abort('Aborting...')
     download_build(s3_bucket, latest_build, temp_dir)
