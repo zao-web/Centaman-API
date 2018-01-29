@@ -2,7 +2,7 @@
 import os
 import yaml
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ProfileNotFound
 import boto3
 from fabric.api import run, env, task, sudo, cd
 from fabric.contrib.files import exists
@@ -33,15 +33,21 @@ s3_bucket = deploy_config.get('s3_bucket')
 
 
 def _get_latest_build():
-    session = boto3.Session(profile_name=os.getenv('AWS_PROFILE', 'hb-deployer'))
-    s3 = session.client('s3')
-    r = s3.list_objects(Bucket=s3_bucket)
-    target_match = '/'.join((repo_name, '_'.join((repo_name, env.branch))))
-    available_builds = [x.get('Key') for x in r.get('Contents') if x.get('Key').startswith(target_match)]
     try:
-        return available_builds[-1]
-    except IndexError:
-        abort('Unable to find any builds in S3. Check that TravisCI is uploading builds.')
+        session = boto3.Session(profile_name=os.getenv('AWS_PROFILE', 'hb-deployer'))
+    except ProfileNotFound:
+        abort('AWS profile not found. Ensure you have `hb-deployer` set up in `~/.aws/credentials`')
+    try:
+        s3 = session.client('s3')
+        r = s3.list_objects(Bucket=s3_bucket)
+        target_match = '/'.join((repo_name, '_'.join((repo_name, env.branch))))
+        available_builds = [x.get('Key') for x in r.get('Contents') if x.get('Key').startswith(target_match)]
+        try:
+            return available_builds[-1]
+        except IndexError:
+            abort('Unable to find any builds in S3. Check that TravisCI is uploading builds.')
+    except ClientError:
+        abort('Permission denied when performing S3 query. Check your AWS credential configuration.')
 
 
 def _get_current_build():
@@ -120,26 +126,25 @@ def deploy(override_prompt=False):
 
     require('stage', provided_by=(stg, prod))
 
-    try:
-        latest_build = _get_latest_build()
-    except ClientError:
-        print('Permission denied when performing S3 query. Check your AWS credential configuration.')
-        exit(1)
-
+    latest_build = _get_latest_build()
     current_build = _get_current_build()
 
     if current_build == 'unknown':
         msg = '''Either this is the first time deploying or the destination is in unknown state.
                 Either way, deploying now is a safe operation and this message is only for your own information.'''
         warn('Unable to find a deployed build on the node. %s' % msg)
-    if latest_build.split('/')[1] == current_build:
-        warn('You are about to deploy the exact same build again')
 
-    print 'Build currently deployed:     ', current_build
+    print 'Build currently deployed:', current_build
     print 'Build available for deploying:', latest_build.split('/')[1]
     print
+
     if not override_prompt:
         continue_prompt = confirm('Ready to deploy?')
         if not continue_prompt:
-            abort('Aborting...')
+            abort('Not ready to deploy')
+    if latest_build.split('/')[1] == current_build:
+        warn('You are about to deploy the exact same build again')
+        dupe_deploy_prompt = confirm('Are you use you want to deploy the same build again?')
+        if not dupe_deploy_prompt:
+            abort('Not deploying duplicate build')
     download_build(s3_bucket, latest_build, temp_dir)
