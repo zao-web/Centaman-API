@@ -90,7 +90,7 @@ def _wpcontent(temp_dir, build_filename, path_to_deployed_artifact):
 
 def _normal(temp_dir, build_filename, path_to_deployed_artifact):
     with cd(temp_dir):
-        sudo('rsync -a --delete %s %s' % (artifact_name, deploy_to))
+        sudo('rsync -a --delete-delay %s %s' % (artifact_name, deploy_to))
 
     sudo('chown -R deployer:deployer %s' % path_to_deployed_artifact)
     sudo('find %s -type f -exec chmod 644 {} \;' % path_to_deployed_artifact)
@@ -100,6 +100,11 @@ def _normal(temp_dir, build_filename, path_to_deployed_artifact):
 
 def _cleanup_build_dir():
     sudo('rm -rf %s/*' % temp_dir)
+
+
+def clear_wp_cache():
+    with cd('/var/html/website'):
+        run('/usr/local/bin/wp --path=/var/html/website cache flush')
 
 
 def stage_set(stage_name='stg'):
@@ -148,3 +153,4 @@ def deploy(override_prompt=False):
         if not dupe_deploy_prompt:
             abort('Not deploying duplicate build')
     download_build(s3_bucket, latest_build, temp_dir)
+    clear_wp_cache()
