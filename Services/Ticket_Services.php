@@ -116,6 +116,28 @@ class Ticket_Services extends API_Request {
 	}
 
 	/**
+	 * This method is for releasing the held spots.
+	 *
+	 * Tickets that have been released the Vacancy count for other web sessions
+	 * as well as desktop Point Of Sale.
+	 *
+	 * The temporary reservation is removed when the customer completes purchase and the reservation becomes permanent
+	 * or when they end the browser session
+	 *
+	 * @param  [type] $args [description] Expects an array of arrays: array( array( 'TimedTicket' => '2' ), array() )
+	 * @return [type]       [description]
+	 */
+	public function release_hold( $args ) {
+		return $this->set_endpoint( 'TimedTicketType' )
+			->set_query_args( array(
+				'Releaseflag' => 1,
+			) )
+			->set_args( array( 'body' => wp_json_encode( $args ) ) )
+			->dispatch( 'POST' )
+			->get_response();
+	}
+
+	/**
 	 * Request data from the foreign currency endpoint.
 	 *
 	 * @return [type]  [description]
