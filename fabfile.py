@@ -2,10 +2,11 @@
 import os
 import yaml
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ProfileNotFound
 import boto3
-from fabric.api import run, env, task, prompt, sudo, cd
+from fabric.api import run, env, task, sudo, cd
 from fabric.contrib.files import exists
+from fabric.contrib.console import confirm
 from fabric.operations import require
 from fabric.utils import abort, warn
 
@@ -32,15 +33,21 @@ s3_bucket = deploy_config.get('s3_bucket')
 
 
 def _get_latest_build():
-    session = boto3.Session(profile_name=os.getenv('AWS_PROFILE', 'hb-deployer'))
-    s3 = session.client('s3')
-    r = s3.list_objects(Bucket=s3_bucket)
-    target_match = '/'.join((repo_name, '_'.join((repo_name, env.branch))))
-    available_builds = [x.get('Key') for x in r.get('Contents') if x.get('Key').startswith(target_match)]
     try:
-        return available_builds[-1]
-    except IndexError:
-        abort('Unable to find any builds in S3. Check that TravisCI is uploading builds.')
+        session = boto3.Session(profile_name=os.getenv('AWS_PROFILE', 'hb-deployer'))
+    except ProfileNotFound:
+        abort('AWS profile not found. Ensure you have `hb-deployer` set up in `~/.aws/credentials`')
+    try:
+        s3 = session.client('s3')
+        r = s3.list_objects(Bucket=s3_bucket)
+        target_match = '/'.join((repo_name, '_'.join((repo_name, env.branch))))
+        available_builds = [x.get('Key') for x in r.get('Contents') if x.get('Key').startswith(target_match)]
+        try:
+            return available_builds[-1]
+        except IndexError:
+            abort('Unable to find any builds in S3. Check that TravisCI is uploading builds.')
+    except ClientError:
+        abort('Permission denied when performing S3 query. Check your AWS credential configuration.')
 
 
 def _get_current_build():
@@ -57,20 +64,47 @@ def download_build(s3_bucket, build_id, temp_dir):
         _, build_filename = build_id.split('/')
         sudo('tar xf %s' % build_filename)
 
-    with cd(temp_dir):
-        sudo('rsync -a --delete %s %s' % (artifact_name, deploy_to))
-
     path_to_deployed_artifact = os.path.join(deploy_to, artifact_name)
+
+    if 'wp-content' in repo_name:
+        _wpcontent(temp_dir, build_filename, path_to_deployed_artifact)
+    else:
+        _normal(temp_dir, build_filename, path_to_deployed_artifact)
+
+    _cleanup_build_dir()
+
+
+def _wpcontent(temp_dir, build_filename, path_to_deployed_artifact):
+    # The steps for deploying the `wp-content/` folder are a special case so that we don't blow away
+    # the folders inside that that we're deploying separately (eg, everything in `plugins/` and `themes/`)
+    with cd(temp_dir):
+        sudo('mv hnc-%s %s' % (artifact_name, artifact_name))
+        sudo('rsync -a %s/* %s' % (artifact_name, path_to_deployed_artifact))
+
+    sudo('find %s -type f -name *.php -exec chown deployer:deployer {} \;' % path_to_deployed_artifact)
+    sudo('find %s -type f -name *.php -exec chmod 644 {} \;' % path_to_deployed_artifact)
+    sudo('find %s -type d -exec chown deployer:deployer {} \;' % os.path.join(path_to_deployed_artifact, 'mu-plugins'))
+    sudo('find %s -type d -exec chmod 755 {} \;' % os.path.join(path_to_deployed_artifact, 'mu-plugins'))
+    sudo('echo %s > %s/.current_version' % (build_filename, path_to_deployed_artifact))
+
+
+def _normal(temp_dir, build_filename, path_to_deployed_artifact):
+    with cd(temp_dir):
+        sudo('rsync -a --delete-delay %s %s' % (artifact_name, deploy_to))
+
     sudo('chown -R deployer:deployer %s' % path_to_deployed_artifact)
     sudo('find %s -type f -exec chmod 644 {} \;' % path_to_deployed_artifact)
     sudo('find %s -type d -exec chmod 755 {} \;' % path_to_deployed_artifact)
     sudo('echo %s > %s/.current_version' % (build_filename, path_to_deployed_artifact))
 
-    _cleanup_build_dir()
-
 
 def _cleanup_build_dir():
     sudo('rm -rf %s/*' % temp_dir)
+
+
+def clear_wp_cache():
+    with cd('/var/html/website'):
+        run('/usr/local/bin/wp --path=/var/html/website cache flush')
 
 
 def stage_set(stage_name='stg'):
@@ -90,32 +124,33 @@ def stg():
 
 
 @task
-def deploy():
+def deploy(override_prompt=False):
     """
     Deploy the project.
     """
 
     require('stage', provided_by=(stg, prod))
 
-    try:
-        latest_build = _get_latest_build()
-    except ClientError:
-        print('Permission denied when performing S3 query. Check your AWS credential configuration.')
-        exit(1)
-
+    latest_build = _get_latest_build()
     current_build = _get_current_build()
 
     if current_build == 'unknown':
         msg = '''Either this is the first time deploying or the destination is in unknown state.
                 Either way, deploying now is a safe operation and this message is only for your own information.'''
         warn('Unable to find a deployed build on the node. %s' % msg)
-    if latest_build.split('/')[1] == current_build:
-        warn('You are about to deploy the exact same build again')
 
-    print 'Build currently deployed:     ', current_build
+    print 'Build currently deployed:', current_build
     print 'Build available for deploying:', latest_build.split('/')[1]
     print
-    continue_prompt = prompt('Ready to deploy? (y/n)', validate=r'^[YNyn]{1}$', default='y')
-    if not continue_prompt == 'y' or continue_prompt == 'Y':
-        abort('Aborting...')
+
+    if not override_prompt:
+        continue_prompt = confirm('Ready to deploy?')
+        if not continue_prompt:
+            abort('Not ready to deploy')
+    if latest_build.split('/')[1] == current_build:
+        warn('You are about to deploy the exact same build again')
+        dupe_deploy_prompt = confirm('Are you use you want to deploy the same build again?')
+        if not dupe_deploy_prompt:
+            abort('Not deploying duplicate build')
     download_build(s3_bucket, latest_build, temp_dir)
+    clear_wp_cache()
