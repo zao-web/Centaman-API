@@ -18,8 +18,10 @@ class Member_Services extends API_Request {
 			'Password'     => '',
 		) );
 
+		$args = array_filter( $args );
+
 		$this
-			->set_endpoint( 'Authenticaton' )
+			->set_endpoint( 'Authentication' )
 			->set_args( array( 'body' => wp_json_encode( $args ) ) )
 			->dispatch( 'POST' );
 
