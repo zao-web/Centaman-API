@@ -83,6 +83,10 @@ abstract class API_Request {
 				$msg = sprintf( __( 'The request resulted in a %s.', 'zao-centaman' ), $this->code );
 				if ( ! empty( $this->response ) && is_string( $this->response ) ) {
 					$msg = $this->response;
+					$json = json_decode( $msg );
+					if ( $json && ! empty( $json->Message ) ) {
+						$msg = $json->Message;
+					}
 				}
 				return new \WP_Error( 'centaman_' . $this->code, $msg, $this );
 		}
